@@ -104,7 +104,6 @@ function buildResult(
       sessions.push({
         ...session,
         courseId: course.id,
-        courseCode: course.code,
         courseName: course.name,
         optionId: option.id,
         optionName: option.name,
@@ -130,7 +129,6 @@ function buildResult(
   const selectedOptionResults = selectedOptions.map(
     (option, index) => ({
       courseId: courses[index].id,
-      courseCode: courses[index].code,
       courseName: courses[index].name,
       optionId: option.id,
       optionName: option.name,
@@ -184,7 +182,6 @@ export function findBestSchedules(
         newSessions.push({
           ...session,
           courseId: course.id,
-          courseCode: course.code,
           courseName: course.name,
           optionId: option.id,
           optionName: option.name,
