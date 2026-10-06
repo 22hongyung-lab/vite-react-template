@@ -88,7 +88,7 @@ export default function App() {
 
         return {
           ...course,
-          [field\]: value,
+          [field]: value,
         };
       }),
     );
@@ -267,7 +267,7 @@ export default function App() {
 
                 return {
                   ...session,
-                  [field\]: value,
+                  [field]: value,
                 };
               }),
             };
