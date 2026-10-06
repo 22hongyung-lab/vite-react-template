@@ -251,45 +251,42 @@ function updateCourse(
   }
 
 
-  function updateSession(
-    courseId: string,
-    optionId: string,
-    sessionId: string,
-    field: "day" | "start" | "end",
-    value: string,
-  ) {
-    setCourses((current) =>
-      current.map((course) =>
-        course.id === courseId
-          ? {
-              ...course,
+function updateSession(
+  courseId: string,
+  optionId: string,
+  sessionId: string,
+  field: "day" | "start" | "end",
+  value: string,
+) {
+  setCourses((current) =>
+    current.map((course) =>
+      course.id === courseId
+        ? {
+            ...course,
 
-              options: course.options.map(
-                (option) =>
-                  option.id === optionId
-                    ? {
-                        ...option,
+            options: course.options.map(
+              (option) =>
+                option.id === optionId
+                  ? {
+                      ...option,
 
-                        sessions:
-                          option.sessions.map(
-                            (session) =>
-                              session.id ===
-                              sessionId
-                                ? {
-                                    ...session,
-                                    [field\]:
-                                      value,
-                                  }
-                                : session,
-                          ),
-                      }
-                    : option,
-              ),
-            }
-          : course,
-      ),
-    );
-  }
+                      sessions: option.sessions.map(
+                        (session) =>
+                          session.id === sessionId
+                            ? {
+                                ...session,
+                                [field\]: value,
+                              }
+                            : session,
+                      ),
+                    }
+                  : option,
+            ),
+          }
+        : course,
+    ),
+  );
+}
 
 
   function generate() {
