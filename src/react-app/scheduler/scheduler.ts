@@ -26,10 +26,12 @@ function sessionsConflict(a: Session, b: Session): boolean {
     return false;
   }
 
-  return (
-    timeToMinutes(a.start) < timeToMinutes(b.end) &&
-    timeToMinutes(b.start) < timeToMinutes(a.end)
-  );
+  const aStart = timeToMinutes(a.start);
+  const aEnd = timeToMinutes(a.end);
+  const bStart = timeToMinutes(b.start);
+  const bEnd = timeToMinutes(b.end);
+
+  return aStart < bEnd && bStart < aEnd;
 }
 
 function optionConflicts(
@@ -47,7 +49,9 @@ function optionConflicts(
   return false;
 }
 
-function calculateGapMinutes(sessions: ScheduledSession[]): number {
+function calculateGapMinutes(
+  sessions: ScheduledSession[],
+): number {
   let totalGap = 0;
 
   const sessionsByDay: Record<string, ScheduledSession[]> = {};
@@ -62,12 +66,18 @@ function calculateGapMinutes(sessions: ScheduledSession[]): number {
 
   for (const daySessions of Object.values(sessionsByDay)) {
     daySessions.sort(
-      (a, b) => timeToMinutes(a.start) - timeToMinutes(b.start),
+      (a, b) =>
+        timeToMinutes(a.start) - timeToMinutes(b.start),
     );
 
     for (let i = 1; i < daySessions.length; i++) {
-      const previousEnd = timeToMinutes(daySessions[i - 1].end);
-      const currentStart = timeToMinutes(daySessions[i].start);
+      const previousEnd = timeToMinutes(
+        daySessions[i - 1].end,
+      );
+
+      const currentStart = timeToMinutes(
+        daySessions[i].start,
+      );
 
       const gap = currentStart - previousEnd;
 
@@ -84,23 +94,27 @@ function buildResult(
   courses: Course[],
   selectedOptions: ScheduleOption[],
 ): ScheduleResult {
-  const sessions: ScheduledSession[] = selectedOptions.flatMap(
-    (option, index) => {
-      const course = courses[index];
+  const sessions: ScheduledSession[] = [];
 
-      return option.sessions.map((session) => ({
+  for (let i = 0; i < selectedOptions.length; i++) {
+    const option = selectedOptions[i];
+    const course = courses[i];
+
+    for (const session of option.sessions) {
+      sessions.push({
         ...session,
         courseId: course.id,
         courseCode: course.code,
         courseName: course.name,
         optionId: option.id,
         optionName: option.name,
-      }));
-    },
-  );
+      });
+    }
+  }
 
   sessions.sort((a, b) => {
-    const dayDifference = DAY_ORDER[a.day] - DAY_ORDER[b.day];
+    const dayDifference =
+      DAY_ORDER[a.day] - DAY_ORDER[b.day];
 
     if (dayDifference !== 0) {
       return dayDifference;
@@ -109,20 +123,24 @@ function buildResult(
     return timeToMinutes(a.start) - timeToMinutes(b.start);
   });
 
-  const uniqueDays = new Set(sessions.map((session) => session.day));
+  const uniqueDays = new Set(
+    sessions.map((session) => session.day),
+  );
 
-  return {
-    daysUsed: uniqueDays.size,
-    gapMinutes: calculateGapMinutes(sessions),
-
-    selectedOptions: selectedOptions.map((option, index) => ({
+  const selectedOptionResults = selectedOptions.map(
+    (option, index) => ({
       courseId: courses[index].id,
       courseCode: courses[index].code,
       courseName: courses[index].name,
       optionId: option.id,
       optionName: option.name,
-    })),
+    }),
+  );
 
+  return {
+    daysUsed: uniqueDays.size,
+    gapMinutes: calculateGapMinutes(sessions),
+    selectedOptions: selectedOptionResults,
     sessions,
   };
 }
@@ -135,8 +153,10 @@ export function findBestSchedules(
     return [];
   }
 
-  if (courses.some((course) => course.options.length === 0)) {
-    return [];
+  for (const course of courses) {
+    if (course.options.length === 0) {
+      return [];
+    }
   }
 
   const results: ScheduleResult[] = [];
@@ -145,7 +165,7 @@ export function findBestSchedules(
     courseIndex: number,
     selectedOptions: ScheduleOption[],
     existingSessions: ScheduledSession[],
-  ) {
+  ): void {
     if (courseIndex === courses.length) {
       results.push(buildResult(courses, selectedOptions));
       return;
@@ -158,16 +178,18 @@ export function findBestSchedules(
         continue;
       }
 
-      const newSessions: ScheduledSession[] = option.sessions.map(
-        (session) => ({
+      const newSessions: ScheduledSession[] = [];
+
+      for (const session of option.sessions) {
+        newSessions.push({
           ...session,
           courseId: course.id,
           courseCode: course.code,
           courseName: course.name,
           optionId: option.id,
           optionName: option.name,
-        }),
-      );
+        });
+      }
 
       search(
         courseIndex + 1,
@@ -187,4 +209,5 @@ export function findBestSchedules(
     return a.gapMinutes - b.gapMinutes;
   });
 
-  return results
+  return results.slice(0, maxResults);
+}
