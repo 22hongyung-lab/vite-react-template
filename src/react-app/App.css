@@ -171,6 +171,31 @@
   background: #e0e7ff;
 }
 
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.clear-button {
+  padding: 8px 10px;
+
+  border: 0;
+  background: transparent;
+
+  color: #94a3b8;
+
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+
+  cursor: pointer;
+}
+
+.clear-button:hover {
+  color: #dc2626;
+}
+
 
 /* =========================================================
    COURSE LIST
@@ -683,6 +708,15 @@
    ========================================================= */
 
 @media (max-width: 700px) {
+
+   .header-actions {
+  width: 100%;
+}
+
+.header-actions .button {
+  flex: 1;
+}
+   
   .hero {
     padding:
       30px 16px
