@@ -25,14 +25,12 @@ export interface ScheduleOption {
 
 export interface Course {
   id: string;
-  code: string;
   name: string;
   options: ScheduleOption[];
 }
 
 export interface ScheduledSession extends Session {
   courseId: string;
-  courseCode: string;
   courseName: string;
   optionId: string;
   optionName: string;
@@ -40,7 +38,6 @@ export interface ScheduledSession extends Session {
 
 export interface SelectedOption {
   courseId: string;
-  courseCode: string;
   courseName: string;
   optionId: string;
   optionName: string;
