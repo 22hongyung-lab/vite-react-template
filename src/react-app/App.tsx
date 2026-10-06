@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import "./App.css";
 
 import {
@@ -9,6 +9,8 @@ import {
 } from "./scheduler/types";
 
 import { findBestSchedules } from "./scheduler/scheduler";
+
+const STORAGE_KEY = "timetable-planner-courses";
 
 function makeId(): string {
   return crypto.randomUUID();
@@ -35,6 +37,27 @@ function createCourse(number: number): Course {
   };
 }
 
+function loadSavedCourses(): Course[] {
+  const saved = localStorage.getItem(STORAGE_KEY);
+
+  if (!saved) {
+    return [createCourse(1)];
+  }
+
+  try {
+    const parsed = JSON.parse(saved) as Course[];
+
+    if (!Array.isArray(parsed) || parsed.length === 0) {
+      return [createCourse(1)];
+    }
+
+    return parsed;
+  } catch {
+    localStorage.removeItem(STORAGE_KEY);
+    return [createCourse(1)];
+  }
+}
+
 function formatGap(minutes: number): string {
   const hours = Math.floor(minutes / 60);
   const remainingMinutes = minutes % 60;
@@ -51,9 +74,9 @@ function formatGap(minutes: number): string {
 }
 
 export default function App() {
-  const [courses, setCourses] = useState<Course[]>([
-    createCourse(1),
-  ]);
+  const [courses, setCourses] = useState<Course[]>(
+    loadSavedCourses,
+  );
 
   const [results, setResults] = useState<ScheduleResult[]>([]);
   const [resultIndex, setResultIndex] = useState(0);
@@ -61,11 +84,31 @@ export default function App() {
 
   const activeResult = results[resultIndex];
 
+  useEffect(() => {
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify(courses),
+    );
+  }, [courses]);
+
+  function clearOldResults() {
+    setResults([]);
+    setResultIndex(0);
+    setMessage("");
+  }
+
+  function changeCourses(
+    updater: (current: Course[]) => Course[],
+  ) {
+    setCourses((current) => updater(current));
+    clearOldResults();
+  }
+
   function updateCourseName(
     courseId: string,
     name: string,
   ) {
-    setCourses((current) =>
+    changeCourses((current) =>
       current.map((course) => {
         if (course.id !== courseId) {
           return course;
@@ -80,26 +123,29 @@ export default function App() {
   }
 
   function addCourse() {
-    setCourses((current) => [
+    changeCourses((current) => [
       ...current,
       createCourse(current.length + 1),
     ]);
   }
 
   function removeCourse(courseId: string) {
-    setCourses((current) =>
-      current.filter((course) => course.id !== courseId),
+    changeCourses((current) =>
+      current.filter(
+        (course) => course.id !== courseId,
+      ),
     );
   }
 
   function addOption(courseId: string) {
-    setCourses((current) =>
+    changeCourses((current) =>
       current.map((course) => {
         if (course.id !== courseId) {
           return course;
         }
 
-        const optionNumber = course.options.length + 1;
+        const optionNumber =
+          course.options.length + 1;
 
         return {
           ...course,
@@ -127,7 +173,7 @@ export default function App() {
     courseId: string,
     optionId: string,
   ) {
-    setCourses((current) =>
+    changeCourses((current) =>
       current.map((course) => {
         if (course.id !== courseId) {
           return course;
@@ -147,7 +193,7 @@ export default function App() {
     courseId: string,
     optionId: string,
   ) {
-    setCourses((current) =>
+    changeCourses((current) =>
       current.map((course) => {
         if (course.id !== courseId) {
           return course;
@@ -183,7 +229,7 @@ export default function App() {
     optionId: string,
     sessionId: string,
   ) {
-    setCourses((current) =>
+    changeCourses((current) =>
       current.map((course) => {
         if (course.id !== courseId) {
           return course;
@@ -199,7 +245,8 @@ export default function App() {
             return {
               ...option,
               sessions: option.sessions.filter(
-                (session) => session.id !== sessionId,
+                (session) =>
+                  session.id !== sessionId,
               ),
             };
           }),
@@ -214,7 +261,7 @@ export default function App() {
     sessionId: string,
     day: Day,
   ) {
-    setCourses((current) =>
+    changeCourses((current) =>
       current.map((course) => {
         if (course.id !== courseId) {
           return course;
@@ -229,16 +276,14 @@ export default function App() {
 
             return {
               ...option,
-              sessions: option.sessions.map((session) => {
-                if (session.id !== sessionId) {
-                  return session;
-                }
-
-                return {
-                  ...session,
-                  day,
-                };
-              }),
+              sessions: option.sessions.map((session) =>
+                session.id === sessionId
+                  ? {
+                      ...session,
+                      day,
+                    }
+                  : session,
+              ),
             };
           }),
         };
@@ -252,7 +297,7 @@ export default function App() {
     sessionId: string,
     start: string,
   ) {
-    setCourses((current) =>
+    changeCourses((current) =>
       current.map((course) => {
         if (course.id !== courseId) {
           return course;
@@ -267,16 +312,14 @@ export default function App() {
 
             return {
               ...option,
-              sessions: option.sessions.map((session) => {
-                if (session.id !== sessionId) {
-                  return session;
-                }
-
-                return {
-                  ...session,
-                  start,
-                };
-              }),
+              sessions: option.sessions.map((session) =>
+                session.id === sessionId
+                  ? {
+                      ...session,
+                      start,
+                    }
+                  : session,
+              ),
             };
           }),
         };
@@ -290,7 +333,7 @@ export default function App() {
     sessionId: string,
     end: string,
   ) {
-    setCourses((current) =>
+    changeCourses((current) =>
       current.map((course) => {
         if (course.id !== courseId) {
           return course;
@@ -305,21 +348,39 @@ export default function App() {
 
             return {
               ...option,
-              sessions: option.sessions.map((session) => {
-                if (session.id !== sessionId) {
-                  return session;
-                }
-
-                return {
-                  ...session,
-                  end,
-                };
-              }),
+              sessions: option.sessions.map((session) =>
+                session.id === sessionId
+                  ? {
+                      ...session,
+                      end,
+                    }
+                  : session,
+              ),
             };
           }),
         };
       }),
     );
+  }
+
+  function clearAll() {
+    const confirmed = window.confirm(
+      "Clear all classes and start again?",
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    localStorage.removeItem(STORAGE_KEY);
+
+    setCourses([
+      createCourse(1),
+    ]);
+
+    setResults([]);
+    setResultIndex(0);
+    setMessage("");
   }
 
   function validateCourses(): string | null {
@@ -343,7 +404,7 @@ export default function App() {
 
         for (const session of option.sessions) {
           if (!session.start || !session.end) {
-            return `${course.name} has a time that is incomplete.`;
+            return `${course.name} has an incomplete time.`;
           }
 
           if (session.start >= session.end) {
@@ -367,14 +428,17 @@ export default function App() {
       return;
     }
 
-    const schedules = findBestSchedules(courses, 20);
+    const schedules = findBestSchedules(
+      courses,
+      20,
+    );
 
     setResults(schedules);
     setResultIndex(0);
 
     if (schedules.length === 0) {
       setMessage(
-        "No conflict-free timetable could be found. Try choosing different times or adding more options.",
+        "No conflict-free timetable could be found. Try adding more options or changing the class times.",
       );
     }
   }
@@ -390,9 +454,10 @@ export default function App() {
           <h1>Plan your classes.</h1>
 
           <p>
-            Add your classes and their available times.
-            We will find the combination with the fewest
-            class days and shortest gaps.
+            Add your classes and their available
+            times. The planner finds the combination
+            with the fewest class days and shortest
+            gaps.
           </p>
         </div>
       </header>
@@ -404,17 +469,28 @@ export default function App() {
               <h2>Your classes</h2>
 
               <p>
-                Add one or more possible options for each class.
+                Your changes are saved automatically
+                on this device.
               </p>
             </div>
 
-            <button
-              type="button"
-              className="button secondary"
-              onClick={addCourse}
-            >
-              + Add class
-            </button>
+            <div className="header-actions">
+              <button
+                type="button"
+                className="clear-button"
+                onClick={clearAll}
+              >
+                Clear all
+              </button>
+
+              <button
+                type="button"
+                className="button secondary"
+                onClick={addCourse}
+              >
+                + Add class
+              </button>
+            </div>
           </div>
 
           <div className="courses">
@@ -479,85 +555,87 @@ export default function App() {
                         </div>
 
                         <div className="session-list">
-                          {option.sessions.map((session) => (
-                            <div
-                              className="session-row"
-                              key={session.id}
-                            >
-                              <select
-                                value={session.day}
-                                aria-label="Day"
-                                onChange={(event) =>
-                                  updateSessionDay(
-                                    course.id,
-                                    option.id,
-                                    session.id,
-                                    event.target.value as Day,
-                                  )
-                                }
+                          {option.sessions.map(
+                            (session) => (
+                              <div
+                                className="session-row"
+                                key={session.id}
                               >
-                                {DAYS.map((day) => (
-                                  <option
-                                    value={day}
-                                    key={day}
-                                  >
-                                    {day}
-                                  </option>
-                                ))}
-                              </select>
+                                <select
+                                  value={session.day}
+                                  aria-label="Day"
+                                  onChange={(event) =>
+                                    updateSessionDay(
+                                      course.id,
+                                      option.id,
+                                      session.id,
+                                      event.target.value as Day,
+                                    )
+                                  }
+                                >
+                                  {DAYS.map((day) => (
+                                    <option
+                                      value={day}
+                                      key={day}
+                                    >
+                                      {day}
+                                    </option>
+                                  ))}
+                                </select>
 
-                              <input
-                                type="time"
-                                value={session.start}
-                                aria-label="Start time"
-                                onChange={(event) =>
-                                  updateSessionStart(
-                                    course.id,
-                                    option.id,
-                                    session.id,
-                                    event.target.value,
-                                  )
-                                }
-                              />
+                                <input
+                                  type="time"
+                                  value={session.start}
+                                  aria-label="Start time"
+                                  onChange={(event) =>
+                                    updateSessionStart(
+                                      course.id,
+                                      option.id,
+                                      session.id,
+                                      event.target.value,
+                                    )
+                                  }
+                                />
 
-                              <span
-                                className="time-arrow"
-                                aria-hidden="true"
-                              >
-                                →
-                              </span>
+                                <span
+                                  className="time-arrow"
+                                  aria-hidden="true"
+                                >
+                                  →
+                                </span>
 
-                              <input
-                                type="time"
-                                value={session.end}
-                                aria-label="End time"
-                                onChange={(event) =>
-                                  updateSessionEnd(
-                                    course.id,
-                                    option.id,
-                                    session.id,
-                                    event.target.value,
-                                  )
-                                }
-                              />
+                                <input
+                                  type="time"
+                                  value={session.end}
+                                  aria-label="End time"
+                                  onChange={(event) =>
+                                    updateSessionEnd(
+                                      course.id,
+                                      option.id,
+                                      session.id,
+                                      event.target.value,
+                                    )
+                                  }
+                                />
 
-                              <button
-                                type="button"
-                                className="icon-button danger"
-                                title="Remove time"
-                                aria-label="Remove time"
-                                onClick={() =>
-                                  removeSession(
-                                    course.id,
-                                    option.id,
-                                    session.id,
-                                  )
-                                }
-                              >
-                                ×
-                              </button>
-                            </div>
-                          ))}
+                                <button
+                                  type="button"
+                                  className="icon-button danger"
+                                  title="Remove time"
+                                  aria-label="Remove time"
+                                  onClick={() =>
+                                    removeSession(
+                                      course.id,
+                                      option.id,
+                                      session.id,
+                                    )
+                                  }
+                                >
+                                  ×
+                                </button>
+                              </div>
+                            ),
+                          )}
                         </div>
 
                         <button
@@ -613,9 +691,7 @@ export default function App() {
                   BEST MATCH
                 </div>
 
-                <h2>
-                  Your timetable
-                </h2>
+                <h2>Your timetable</h2>
               </div>
 
               <div className="result-summary">
@@ -638,7 +714,8 @@ export default function App() {
                 <span aria-hidden="true">·</span>
 
                 <span>
-                  {resultIndex + 1} of {results.length}
+                  {resultIndex + 1} of{" "}
+                  {results.length}
                 </span>
               </div>
             </div>
@@ -716,7 +793,8 @@ export default function App() {
                   disabled={resultIndex === 0}
                   onClick={() =>
                     setResultIndex(
-                      (current) => current - 1,
+                      (current) =>
+                        current - 1,
                     )
                   }
                 >
@@ -737,7 +815,8 @@ export default function App() {
                   }
                   onClick={() =>
                     setResultIndex(
-                      (current) => current + 1,
+                      (current) =>
+                        current + 1,
                     )
                   }
                 >
