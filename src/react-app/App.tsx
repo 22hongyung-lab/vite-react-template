@@ -70,19 +70,19 @@ export default function App() {
   const [message, setMessage] = useState("");
 
 
-  function updateCourse(
-    courseId: string,
-    field: "code" | "name",
-    value: string,
-  ) {
-    setCourses((current) =>
-      current.map((course) =>
-        course.id === courseId
-          ? { ...course, [field\]: value }
-          : course,
-      ),
-    );
-  }
+function updateCourse(
+  courseId: string,
+  field: "code" | "name",
+  value: string,
+) {
+  setCourses((current) =>
+    current.map((course) =>
+      course.id === courseId
+        ? { ...course, [field\]: value }
+        : course,
+    ),
+  );
+}
 
 
   function addCourse() {
