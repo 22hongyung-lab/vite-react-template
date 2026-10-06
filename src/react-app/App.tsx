@@ -277,42 +277,43 @@ export default function App() {
     );
   }
 
-  function validateCourses(): string | null {
-    if (courses.length === 0) {
-      return "Please add at least one course.";
-    }
-
-    for (const course of courses) {
-      if (!course.code.trim()) {
-        return "Every course needs a course code.";
-      }
-
-      if (course.options.length === 0) {
-        return `${course.code} needs at least one schedule option.`;
-      }
-
-      for (const option of course.options) {
-        if (!option.name.trim()) {
-          return `${course.code} has an unnamed option.`;
-        }
-
-        if (option.sessions.length === 0) {
-          return `${course.code} ${option.name} needs at least one session.`;
-        }
-
-        for (const session of option.sessions) {ion.start || !session.end) {
-            return `${course.code} has a session with a missing time.`;
-          }
-
-          if (session.start >= session.end) {
-            return `${course.code} has a session where the end time is not after the start time.`;
-          }
-        }
-      }
-    }
-
-    return null;
+function validateCourses(): string | null {
+  if (courses.length === 0) {
+    return "Please add at least one course.";
   }
+
+  for (const course of courses) {
+    if (!course.code.trim()) {
+      return "Every course needs a course code.";
+    }
+
+    if (course.options.length === 0) {
+      return `${course.code} needs at least one schedule option.`;
+    }
+
+    for (const option of course.options) {
+      if (!option.name.trim()) {
+        return `${course.code} has an unnamed option.`;
+      }
+
+      if (option.sessions.length === 0) {
+        return `${course.code} ${option.name} needs at least one session.`;
+      }
+
+      for (const session of option.sessions) {
+        if (!session.start || !session.end) {
+          return `${course.code} has a session with a missing time.`;
+        }
+
+        if (session.start >= session.end) {
+          return `${course.code} has a session where the end time is not after the start time.`;
+        }
+      }
+    }
+  }
+
+  return null;
+}
 
   function generateSchedule() {
     setMessage("");
